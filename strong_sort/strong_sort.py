@@ -14,8 +14,6 @@ from .deep.reid_model_factory import show_downloadeable_models, get_model_url, g
 from torchreid.reid.utils import FeatureExtractor
 from torchreid.reid.utils.tools import download_url
 from .reid_multibackend import ReIDDetectMultiBackend
-from sklearn.metrics.pairwise import cosine_similarity
-from scipy.optimize import linear_sum_assignment
 
 __all__ = ['StrongSORT']
 
@@ -25,69 +23,60 @@ class StrongSORT(object):
                  model_weights,
                  device,
                  fp16,
-                 max_dist=0.2,
-                 max_iou_distance=0.7,
-                 max_age=70, n_init=3,
+                 max_dist=0.15,
+                 max_iou_distance=0.8,
+                 max_age=100, n_init=3,
                  nn_budget=100,
                  mc_lambda=0.995,
                  ema_alpha=0.9
                 ):
-
-        self.device = device
+        
         self.model = ReIDDetectMultiBackend(weights=model_weights, device=device, fp16=fp16)
-
+        
         self.max_dist = max_dist
         metric = NearestNeighborDistanceMetric(
             "cosine", self.max_dist, nn_budget)
         self.tracker = Tracker(
             metric, max_iou_distance=max_iou_distance, max_age=max_age, n_init=n_init)
 
-        self.track_memory = {}  # TrackID -> last feature vector
-
     def update(self, bbox_xywh, confidences, classes, ori_img):
         self.height, self.width = ori_img.shape[:2]
+        # generate detections
         features = self._get_features(bbox_xywh, ori_img)
         bbox_tlwh = self._xywh_to_tlwh(bbox_xywh)
-        detections = [Detection(bbox_tlwh[i], conf, features[i]) for i, conf in enumerate(confidences)]
+        detections = [Detection(bbox_tlwh[i], conf, features[i]) for i, conf in enumerate(
+            confidences)]
 
+        # run on non-maximum supression
         boxes = np.array([d.tlwh for d in detections])
         scores = np.array([d.confidence for d in detections])
 
+        # update tracker
         self.tracker.predict()
         self.tracker.update(detections, classes, confidences)
 
-        for track in self.tracker.tracks:
-            if track.is_confirmed() and track.time_since_update == 0:
-                self.track_memory[track.track_id] = track.features[-1]
-
-        unmatched = [t for t in self.tracker.tracks if t.time_since_update > 1 and t.is_confirmed()]
-        unmatched_dets = [d for d in detections if not any(np.allclose(d.tlwh, t.to_tlwh(), atol=1e-3) for t in self.tracker.tracks)]
-
-        if unmatched and unmatched_dets:
-            det_feats = np.array([d.feature for d in unmatched_dets])
-            stored_feats = np.array(list(self.track_memory.values()))
-            stored_ids = list(self.track_memory.keys())
-
-            sim_matrix = cosine_similarity(det_feats, stored_feats)
-            row_idx, col_idx = linear_sum_assignment(-sim_matrix)
-
-            for r, c in zip(row_idx, col_idx):
-                if sim_matrix[r, c] > 0.8:
-                    recovered_id = stored_ids[c]
-                    print(f"[ReID-Recover] Assigned old track ID {recovered_id} to new detection")
-
+        # output bbox identities
         outputs = []
         for track in self.tracker.tracks:
             if not track.is_confirmed() or track.time_since_update > 1:
                 continue
+
             box = track.to_tlwh()
             x1, y1, x2, y2 = self._tlwh_to_xyxy(box)
-            outputs.append(np.array([x1, y1, x2, y2, track.track_id, track.class_id, track.conf]))
-
+            
+            track_id = track.track_id
+            class_id = track.class_id
+            conf = track.conf
+            outputs.append(np.array([x1, y1, x2, y2, track_id, class_id, conf]))
         if len(outputs) > 0:
             outputs = np.stack(outputs, axis=0)
         return outputs
 
+    """
+    TODO:
+        Convert bbox from xc_yc_w_h to xtl_ytl_w_h
+    Thanks JieChen91@github.com for reporting this bug!
+    """
     @staticmethod
     def _xywh_to_tlwh(bbox_xywh):
         if isinstance(bbox_xywh, np.ndarray):
@@ -107,6 +96,11 @@ class StrongSORT(object):
         return x1, y1, x2, y2
 
     def _tlwh_to_xyxy(self, bbox_tlwh):
+        """
+        TODO:
+            Convert bbox from xtl_ytl_w_h to xc_yc_w_h
+        Thanks JieChen91@github.com for reporting this bug!
+        """
         x, y, w, h = bbox_tlwh
         x1 = max(int(x), 0)
         x2 = min(int(x+w), self.width - 1)
@@ -119,6 +113,7 @@ class StrongSORT(object):
 
     def _xyxy_to_tlwh(self, bbox_xyxy):
         x1, y1, x2, y2 = bbox_xyxy
+
         t = x1
         l = y1
         w = int(x2 - x1)

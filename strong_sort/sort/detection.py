@@ -1,5 +1,6 @@
 # vim: expandtab:ts=4:sw=4
 import numpy as np
+import torch
 
 
 class Detection(object):
@@ -29,7 +30,10 @@ class Detection(object):
     def __init__(self, tlwh, confidence, feature):
         self.tlwh = np.asarray(tlwh, dtype=np.float32)
         self.confidence = float(confidence)
-        self.feature = np.asarray(feature.detach().cpu(), dtype=np.float32)
+        if torch.is_tensor(feature):
+            feature = feature.detach().cpu().numpy()
+        self.feature = np.asarray(feature, dtype=np.float32)
+
 
     def to_tlbr(self):
         """Convert bounding box to format `(min x, min y, max x, max y)`, i.e.,

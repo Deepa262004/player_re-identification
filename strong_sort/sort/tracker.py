@@ -72,27 +72,41 @@ class Tracker:
         ----------
         detections : List[deep_sort.detection.Detection]
             A list of detections at the current time step.
-
         """
-        # Run matching cascade.
-        matches, unmatched_tracks, unmatched_detections = \
-            self._match(detections)
 
-        # Update track set.
+        # --- Run matching cascade (appearance + motion for confirmed tracks) ---
+        matches, unmatched_tracks, unmatched_detections = self._match(detections)
+
+        # --- Update matched tracks ---
         for track_idx, detection_idx in matches:
-            self.tracks[track_idx].update(
-                detections[detection_idx], classes[detection_idx], confidences[detection_idx])
+            track = self.tracks[track_idx]
+            detection = detections[detection_idx]
+            conf = float(confidences[detection_idx])
+
+            # Only update features if conf is high enough (avoid drift)
+            if conf > 0.6:
+                track.update(detection, int(classes[detection_idx]), conf)
+            else:
+                track.update_without_feature(detection, int(classes[detection_idx]), conf)
+
+        # --- Handle unmatched tracks ---
         for track_idx in unmatched_tracks:
-            self.tracks[track_idx].mark_missed()
+            track = self.tracks[track_idx]
+            track.mark_missed()
+
+        # --- Handle new tracks ---
         for detection_idx in unmatched_detections:
-           self._initiate_track(
-                detections[detection_idx],
-                int(classes[detection_idx]),        # ✅ Safely cast to int
-                float(confidences[detection_idx])   # ✅ Safely cast to float
+            detection = detections[detection_idx]
+            self._initiate_track(
+                detection,
+                int(classes[detection_idx]),
+                float(confidences[detection_idx])
             )
+
+        # --- Remove deleted tracks ---
         self.tracks = [t for t in self.tracks if not t.is_deleted()]
 
-        # Update distance metric.
+        # --- Update distance metric for appearance model ---
         active_targets = [t.track_id for t in self.tracks if t.is_confirmed()]
         features, targets = [], []
         for track in self.tracks:
@@ -100,7 +114,13 @@ class Tracker:
                 continue
             features += track.features
             targets += [track.track_id for _ in track.features]
-        self.metric.partial_fit(np.asarray(features), np.asarray(targets), active_targets)
+
+        if features:  # Avoid zero-length arrays
+            self.metric.partial_fit(
+                np.asarray(features),
+                np.asarray(targets),
+                active_targets
+            )
 
     def _full_cost_metric(self, tracks, dets, track_indices, detection_indices):
         """

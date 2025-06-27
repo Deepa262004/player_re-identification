@@ -256,6 +256,7 @@ class Track:
             The Kalman filter.
 
         """
+        print("opened tracks predict")
         self.mean, self.covariance = self.kf.predict(self.mean, self.covariance)
         self.age += 1
         self.time_since_update += 1
@@ -282,6 +283,18 @@ class Track:
         self.time_since_update = 0
         if self.state == TrackState.Tentative and self.hits >= self._n_init:
             self.state = TrackState.Confirmed
+    
+    def update_without_feature(self, detection, class_id, conf):
+        self.conf = conf
+        self.class_id = int(class_id)
+        self.mean, self.covariance = self.kf.update(
+            self.mean, self.covariance, detection.to_xyah(), detection.confidence
+        )
+        self.hits += 1
+        self.time_since_update = 0
+        if self.state == TrackState.Tentative and self.hits >= self._n_init:
+            self.state = TrackState.Confirmed
+
 
     def mark_missed(self):
         """Mark this track as missed (no association at the current time step).
