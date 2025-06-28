@@ -67,8 +67,7 @@ Only tracks the following (based on class name):
 **strong_sort\/deep\/osnet_x0_25_msmt17.pt** - This is a lightweight but accurate re-ID model trained on MSMT17.
 ##
 ### 7.Output
-**output.mp4**: Video with bounding boxes and player IDs
-IDs remain mostly consistent even when players move across frames
+**output.mp4**: Video with bounding boxes and player IDs, IDs remain mostly consistent even when players move across frames
 
 
 
