@@ -112,8 +112,11 @@ class Tracker:
         for track in self.tracks:
             if not track.is_confirmed():
                 continue
-            features += track.features
-            targets += [track.track_id for _ in track.features]
+            
+            if track.features:
+                features.append(np.mean(track.features, axis=0))
+                targets.append(track.track_id)
+
 
         if features:  # Avoid zero-length arrays
             self.metric.partial_fit(
