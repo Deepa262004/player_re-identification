@@ -8,8 +8,6 @@ This project performs **real-time multi-person tracking and re-identification** 
 
 ---
 
-## 🚀 Quick Start
-
 ## 🗂️ Project Structure
 ```bash
 player_re-identification/
