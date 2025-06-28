@@ -8,7 +8,7 @@ This project performs **real-time multi-person tracking and re-identification** 
 
 ---
 
-## 🗂️ Project Structure
+# 🗂️ Project Structure
 ```bash
 player_re-identification/
 │
@@ -30,7 +30,7 @@ player_re-identification/
 ├──README.md # Project documentation
 ```
 
-## 🚀 Quick Start
+# 🚀 Quick Start
 ### 1. Clone the Repository
 
 ```bash
