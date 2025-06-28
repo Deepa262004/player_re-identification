@@ -20,10 +20,9 @@ player_re-identification/
     └──utils/ # Utility scripts
     └──strong_sort.py # StrongSORT class entry point
 │
-├── best (8).pt                    # Trained YOLOv8 model for player detection
+├── best (8).pt                    # Trained YOLOv11 model for player detection
 ├── 15sec_input_720p.mp4           # Input match video (15 seconds)
 ├── player_track.py # Main script to run tracking
-├── best (8).pt # YOLOv8 model weights
 ├── 15sec_input_720p.mp4 # Input test video (15 seconds)
 ├── output.mp4 # Output with tracked IDs
 ├── requirements.txt # Python dependencies
