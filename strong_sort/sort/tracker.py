@@ -84,7 +84,7 @@ class Tracker:
             conf = float(confidences[detection_idx])
 
             # Only update features if conf is high enough (avoid drift)
-            if conf > 0.6:
+            if conf > 0.85:
                 track.update(detection, int(classes[detection_idx]), conf)
             else:
                 track.update_without_feature(detection, int(classes[detection_idx]), conf)
