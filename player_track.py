@@ -6,7 +6,7 @@ from strong_sort.utils.parser import get_config
 from strong_sort.sort.detection import Detection
 
 # === Configuration ===
-YOLO_MODEL_PATH = "best (8).pt"  # Path to your trained YOLOv8 model
+YOLO_MODEL_PATH = "best.pt"  # Path to your trained YOLOv8 model
 VIDEO_SOURCE = "15sec_input_720p.mp4"  # Input video file
 REID_MODEL = "strong_sort/deep/osnet_x0_25_msmt17.pt"  # Re-ID model path
 CONFIG_PATH = "strong_sort/configs/strong_sort.yaml"  # Tracker config
