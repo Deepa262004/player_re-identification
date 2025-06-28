@@ -1,4 +1,4 @@
-# ⚽ Player Re-Identification using YOLOv8 + StrongSORT + OSNet
+# ⚽ Player Re-Identification using YOLOv11 + StrongSORT + OSNet
 
 This project performs **real-time multi-person tracking and re-identification** in sports videos (e.g., soccer/football). It uses:
 
