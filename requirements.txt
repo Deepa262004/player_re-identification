@@ -36,6 +36,7 @@ yapf
 isort==4.3.21
 imageio
 torchreid
+ultralytics
 
 # Export --------------------------------------
 #onnx>=1.9.0  # ONNX export
