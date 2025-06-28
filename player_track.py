@@ -9,7 +9,7 @@ from strong_sort.sort.detection import Detection
 # === CONFIGURATION ===
 YOLO_MODEL_PATH = "best.pt"
 VIDEO_SOURCE = "15sec_input_720p.mp4"
-REID_MODEL = "strong_sort/deep/osnet_x0_25_msmt17.pt"  # Consider custom trained model
+REID_MODEL = "strong_sort/deep/checkpoint/osnet_x0_25_market1501.pt"  # Re-ID model path
 CONFIG_PATH = "strong_sort/configs/strong_sort.yaml"
 VALID_CLASSES = {"player", "goalkeeper", "referee"}
 
@@ -68,7 +68,7 @@ while True:
     frame_count += 1
     
     # Run detection
-    results = model(frame, conf=0.85)[0]  # Lower confidence threshold
+    results = model(frame, conf=0.85)[0]  
     detections = []
     confidences = []
     class_ids = []
@@ -91,7 +91,7 @@ while True:
             confidences.append(float(conf))
             class_ids.append(int(cls))
 
-        # Filter overlapping detections (IoU > 0.9)
+    # Filter overlapping detections (IoU > 0.9)
     filtered = []
     for i, box1 in enumerate(detections):
         skip = False
@@ -146,7 +146,7 @@ while True:
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 1)
 
            
-    # Display frame number for debugging
+    # Displaying frame 
     cv2.putText(frame, f"Frame: {frame_count}", (10, 30),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 255), 2)
 
