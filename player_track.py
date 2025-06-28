@@ -3,6 +3,8 @@ import cv2
 from ultralytics import YOLO
 from strong_sort.strong_sort import StrongSORT
 from strong_sort.utils.parser import get_config
+from strong_sort.sort.detection import Detection
+
 
 # === CONFIGURATION ===
 YOLO_MODEL_PATH = "best (8).pt"
@@ -15,6 +17,8 @@ VALID_CLASSES = {"player", "goalkeeper", "referee"}
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model = YOLO(YOLO_MODEL_PATH)
 class_names = model.model.names
+
+initial_box_sizes = {}  
 
 # === Load StrongSORT with Custom Parameters ===
 cfg = get_config()
@@ -41,6 +45,7 @@ tracker = StrongSORT(
 )
 
 tracker.model.warmup()
+
 
 # === Video processing ===
 cap = cv2.VideoCapture(VIDEO_SOURCE)
@@ -86,32 +91,61 @@ while True:
             confidences.append(float(conf))
             class_ids.append(int(cls))
 
+        # Filter overlapping detections (IoU > 0.9)
+    filtered = []
+    for i, box1 in enumerate(detections):
+        skip = False
+        for j, box2 in enumerate(detections):
+            if i != j:
+                iou = Detection.compute_iou(box1, box2)
+                if iou > 0.9:
+                    skip = True
+                    break
+        if not skip:
+            filtered.append(box1)
+
     # Update tracker
-    if detections:
+    if filtered:
+        filtered_confidences = [confidences[i] for i, box in enumerate(detections) if box in filtered]
+        filtered_class_ids = [class_ids[i] for i, box in enumerate(detections) if box in filtered]
+
         outputs = tracker.update(
-            torch.tensor(detections, dtype=torch.float32),
-            torch.tensor(confidences),
-            class_ids,
+            torch.tensor(filtered, dtype=torch.float32),
+            torch.tensor(filtered_confidences),
+            filtered_class_ids,
             frame
         )
 
+
         # Draw results
         for output in outputs:
+            
             x1, y1, x2, y2, track_id, class_id, conf = output
             x1, y1, x2, y2, track_id, class_id = map(int, [x1, y1, x2, y2, track_id, class_id])
             
-            # Assign consistent color based on track_id for better visualization
+            w = x2 - x1
+            h = y2 - y1
+
+            # If this is the first time we see this track_id, store size
+            if track_id not in initial_box_sizes:
+                initial_box_sizes[track_id] = (w, h)
+            else:
+                initial_w, initial_h = initial_box_sizes[track_id]
+
+                # Skip drawing if new box is significantly smaller than initial (e.g., < 60%)
+                if w < 0.6 * initial_w or h < 0.6 * initial_h:
+                    continue  # Skip this track ID in this frame
+
             color = colors[track_id % len(colors)]
-            
             label = f"ID {track_id} - {class_names[class_id]}"
+            
             cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
             cv2.putText(frame, label, (x1, y1 - 10),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
-                        
-            # Optionally display confidence
             cv2.putText(frame, f"{conf:.2f}", (x1, y1 - 30),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 1)
 
+           
     # Display frame number for debugging
     cv2.putText(frame, f"Frame: {frame_count}", (10, 30),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 255), 2)

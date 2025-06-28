@@ -24,11 +24,12 @@ class StrongSORT(object):
                  device,
                  fp16,
                  max_dist=0.15,
-                 max_iou_distance=0.8,
-                 max_age=100, n_init=3,
+                 max_iou_distance=0.9,
+                 max_age=100, n_init=5,
                  nn_budget=100,
                  mc_lambda=0.995,
-                 ema_alpha=0.9
+                 ema_alpha=0.9,
+                 _lambda = 0.2  # 20% motion, 80% appearance
                 ):
         
         self.model = ReIDDetectMultiBackend(weights=model_weights, device=device, fp16=fp16)
