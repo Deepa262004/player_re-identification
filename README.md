@@ -54,18 +54,18 @@ python player_track.py
 2. Track players using StrongSORT
 3. Save output as output.mp4
 4. Display the video in a window (press Q to quit)
-
+##
 ### 4.Input Expectations
 1.Input Video: Place your .mp4 file and rename it as 15sec_input_720p.mp4<br/>
 2.YOLO Model: Place your trained YOLOv8 .pt model and rename it as best.pt
-
+##
 ### 5.Tracked Classes:
 Only tracks the following (based on class name):
 **player,goalkeeper,referee**
-
+##
 ### 6.Re-Identification Model
 **strong_sort\/deep\/osnet_x0_25_msmt17.pt** - This is a lightweight but accurate re-ID model trained on MSMT17.
-
+##
 ### 7.Output
 **output.mp4**: Video with bounding boxes and player IDs
 IDs remain mostly consistent even when players move across frames
